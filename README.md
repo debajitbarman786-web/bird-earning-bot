@@ -1,0 +1,1 @@
+# bird-earning-bot
