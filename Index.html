@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bird Game</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  background: #87ceeb;
+  color: #153047;
+}
+h2 { margin: 12px 0 5px; }
+#score { font-size: 20px; font-weight: bold; margin: 8px; }
+canvas {
+  display: block;
+  width: min(94vw, 400px);
+  height: 65vh;
+  max-height: 580px;
+  margin: 10px auto;
+  border: 3px solid #fff;
+  border-radius: 12px;
+  background: #b8ecff;
+  touch-action: manipulation;
+}
+button {
+  padding: 12px 24px;
+  border: 0;
+  border-radius: 10px;
+  background: #1688e8;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+}
+#info { padding: 0 12px 16px; }
+</style>
+</head>
+<body>
+<h2>🐦 Bird Game</h2>
+<div id="score">Score: 0</div>
+<canvas id="game" width="360" height="520"></canvas>
+<button id="start">Start Game</button>
+<p id="info">Tap the screen to fly!</p>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const scoreBox = document.getElementById("score");
+const info = document.getElementById("info");
+const startBtn = document.getElementById("start");
+
+let bird, pipes, score, running, ended, frame, gap, speed;
+
+function reset() {
+  bird = { x: 85, y: 230, v: 0, r: 12 };
+  pipes = [];
+  score = 0;
+  frame = 0;
+  gap = 150;
+  speed = 2.2;
+  running = true;
+  ended = false;
+  scoreBox.textContent = "Score: 0";
+  info.textContent = "Tap to fly!";
+  startBtn.textContent = "Restart";
+  requestAnimationFrame(loop);
+}
+
+function flap() {
+  if (!running) return;
+  bird.v = -5.8;
+}
+
+function drawBird() {
+  ctx.fillStyle = "#ffca28";
+  ctx.beginPath();
+  ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#222";
+  ctx.beginPath();
+  ctx.arc(bird.x + 4, bird.y - 3, 2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function endGame() {
+  running = false;
+  ended = true;
+  info.textContent = "Game over! Score: " + score;
+  startBtn.textContent = "Play Again";
+}
+
+function loop() {
+  if (!running) return;
+  frame++;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#b8ecff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  bird.v += 0.27;
+  bird.y += bird.v;
+
+  if (frame % 95 === 1) {
+    const top = 50 + Math.random() * 190;
+    pipes.push({ x: canvas.width, top, passed: false });
+  }
+
+  ctx.fillStyle = "#22a447";
+  for (const p of pipes) {
+    p.x -= speed;
+    ctx.fillRect(p.x, 0, 48, p.top);
+    ctx.fillRect(p.x, p.top + gap, 48, canvas.height);
+
+    const overlaps = bird.x + bird.r > p.x &&
+      bird.x - bird.r < p.x + 48;
+    const hitsPipe = bird.y - bird.r < p.top ||
+      bird.y + bird.r > p.top + gap;
+
+    if (overlaps && hitsPipe) endGame();
+
+    if (!p.passed && p.x + 48 < bird.x) {
+      p.passed = true;
+      score++;
+      scoreBox.textContent = "Score: " + score;
+    }
+  }
+
+  pipes = pipes.filter(p => p.x > -50);
+  drawBird();
+
+  if (bird.y - bird.r < 0 ||
+      bird.y + bird.r > canvas.height) {
+    endGame();
+  }
+
+  if (running) requestAnimationFrame(loop);
+  else {
+    ctx.fillStyle = "#153047";
+    ctx.font = "bold 24px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Game Over", 180, 250);
+  }
+}
+
+canvas.addEventListener("pointerdown", flap);
+startBtn.addEventListener("click", reset);
+</script>
+</body>
+</html>
